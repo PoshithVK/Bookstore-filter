@@ -1,0 +1,182 @@
+### ===========================================
+### BASE URLS
+### ===========================================
+@base = http://localhost:4004/admin
+@catalog = http://localhost:4004/catalog
+
+
+### ===========================================
+### CREATE OPERATIONS (POST)
+### ===========================================
+
+### 1. Create Author
+POST {{base}}/Authors
+Content-Type: application/json
+
+{
+  "name": "New Author",
+  "country": "India"
+}
+
+### 2. Create Book (use existing author ID like a1)
+POST {{base}}/Books
+Content-Type: application/json
+
+{
+  "title": "New CAP Book",
+  "genre": "Fiction",
+  "price": 11.99,
+  "stock": 25,
+  "rating": 4.2,
+  "isbn": "9789999999999",
+  "author_ID": "a1"
+}
+
+### 3. Create another Book
+POST {{base}}/Books
+Content-Type: application/json
+
+{
+  "title": "Another CAP Book",
+  "genre": "Fantasy",
+  "price": 13.99,
+  "stock": 30,
+  "rating": 4.4,
+  "isbn": "9788888888888",
+  "author_ID": "a1"
+}
+
+### 4. Missing field (should fail)
+POST {{base}}/Books
+Content-Type: application/json
+
+{
+  "price": 9.99
+}
+
+### 5. Wrong datatype (should fail)
+POST {{base}}/Books
+Content-Type: application/json
+
+{
+  "title": "Bad Book",
+  "price": "wrong"
+}
+
+
+### ===========================================
+### READ OPERATIONS (GET)
+### ===========================================
+
+### Get all books
+GET {{base}}/Books
+
+### Get single book (existing)
+GET {{base}}/Books(b1)
+
+### Non-existent book
+GET {{base}}/Books(00000000-0000-0000-0000-000000000000)
+
+### Get author of a book
+GET {{base}}/Books(b1)/author
+
+### Get books of an author
+GET {{base}}/Authors(a1)/books
+
+### Expand author
+GET {{base}}/Books?$expand=author&$select=title,price
+
+
+### ===========================================
+### UPDATE OPERATIONS (PATCH / PUT)
+### ===========================================
+
+### PATCH (partial update)
+PATCH {{base}}/Books(b1)
+Content-Type: application/json
+
+{
+  "price": 15.99
+}
+
+### PATCH multiple fields
+PATCH {{base}}/Books(b1)
+Content-Type: application/json
+
+{
+  "stock": 50,
+  "rating": 4.9
+}
+
+### Verify PATCH
+GET {{base}}/Books(b1)
+
+### PUT (full update)
+PUT {{base}}/Books(b1)
+Content-Type: application/json
+
+{
+  "title": "Fully Updated Book",
+  "genre": "Mystery",
+  "price": 18.99,
+  "stock": 40,
+  "rating": 4.6,
+  "isbn": "9781111111111",
+  "author_ID": "a1"
+}
+
+### Verify PUT
+GET {{base}}/Books(b1)
+
+### Update non-existent
+PATCH {{base}}/Books(00000000-0000-0000-0000-000000000000)
+Content-Type: application/json
+
+{
+  "price": 99.99
+}
+
+
+### ===========================================
+### DELETE OPERATIONS
+### ===========================================
+
+### Delete a book
+DELETE {{base}}/Books(b1)
+
+### Verify deletion
+GET {{base}}/Books(b1)
+
+### Delete again (should 404)
+DELETE {{base}}/Books(b1)
+
+### Delete from readonly (should fail)
+DELETE {{catalog}}/Books(b2)
+
+
+### ===========================================
+### @readonly SERVICE VALIDATION
+### ===========================================
+
+### READ works
+GET {{catalog}}/Books
+
+### CREATE blocked
+POST {{catalog}}/Books
+Content-Type: application/json
+
+{
+  "title": "Test Book",
+  "price": 1
+}
+
+### UPDATE blocked
+PATCH {{catalog}}/Books(b2)
+Content-Type: application/json
+
+{
+  "price": 999
+}
+
+### DELETE blocked
+DELETE {{catalog}}/Books(b2)

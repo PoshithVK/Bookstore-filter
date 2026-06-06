@@ -1,0 +1,160 @@
+### Base URL
+@baseUrl = http://localhost:4004/admin
+
+### GET all books (sanity check)
+GET {{baseUrl}}/Books
+
+
+### 1. Empty title
+POST {{baseUrl}}/Books
+Content-Type: application/json
+
+{
+  "ID": "b100",
+  "title": "",
+  "price": 10
+}
+
+
+
+### 2. Missing price
+POST {{baseUrl}}/Books
+Content-Type: application/json
+
+{
+  "ID": "b101",
+  "title": "Book Without Price"
+}
+
+
+###  3. Negative price
+POST {{baseUrl}}/Books
+Content-Type: application/json
+
+{
+  "ID": "b102",
+  "title": "Bad Price",
+  "price": -5
+}
+
+
+### 4. Price too high
+POST {{baseUrl}}/Books
+Content-Type: application/json
+
+{
+  "ID": "b103",
+  "title": "Too Expensive",
+  "price": 20000
+}
+
+
+### 5. Negative stock
+POST {{baseUrl}}/Books
+Content-Type: application/json
+
+{
+  "ID": "b104",
+  "title": "Stock Issue",
+  "price": 10,
+  "stock": -2
+}
+
+
+
+### 6. Invalid ISBN (length != 13)
+POST {{baseUrl}}/Books
+Content-Type: application/json
+
+{
+  "ID": "b105",
+  "title": "Bad ISBN",
+  "price": 10,
+  "isbn": "12345"
+}
+
+
+### 7. Invalid Genre
+POST {{baseUrl}}/Books
+Content-Type: application/json
+
+{
+  "ID": "b106",
+  "title": "Wrong Genre",
+  "price": 10,
+  "genre": "Horror"
+}
+
+
+### 8. Invalid Author (not in CSV)
+POST {{baseUrl}}/Books
+Content-Type: application/json
+
+{
+  "ID": "b107",
+  "title": "No Author Found",
+  "price": 10,
+  "author_ID": "a999"
+}
+
+
+###  9. Multiple validation errors together
+POST {{baseUrl}}/Books
+Content-Type: application/json
+
+{
+  "ID": "b108",
+  "title": "",
+  "price": -10,
+  "stock": -2,
+  "isbn": "123",
+  "genre": "Invalid",
+  "author_ID": "xyz"
+}
+
+### 10. Valid insert (should pass)
+POST {{baseUrl}}/Books
+Content-Type: application/json
+
+{
+  "ID": "b109",
+  "title": "Valid Book",
+  "price": 20,
+  "stock": 5,
+  "isbn": "1234567890123",
+  "genre": "Fantasy",
+  "author_ID": "a1"
+}
+
+### 11. Update negative price
+PATCH {{baseUrl}}/Books(b1)
+Content-Type: application/json
+
+{
+  "price": -100
+}
+
+### 12. Update negative stock
+PATCH {{baseUrl}}/Books(b2)
+Content-Type: application/json
+
+{
+  "stock": -10
+}
+
+### 13. Update wrong ISBN
+PATCH {{baseUrl}}/Books(b3)
+Content-Type: application/json
+
+{
+  "isbn": "111"
+}
+
+### 14. Valid update
+PATCH {{baseUrl}}/Books(b4)
+Content-Type: application/json
+
+{
+  "price": 18.99,
+  "stock": 12
+}

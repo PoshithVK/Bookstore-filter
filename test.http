@@ -1,0 +1,160 @@
+############################
+### BASIC FILTERING
+############################
+
+### Fantasy books
+GET http://localhost:4004/catalog/Books?$filter=genre eq 'Fantasy'
+
+### Books cheaper than 12
+GET http://localhost:4004/catalog/Books?$filter=price lt 12
+
+### Rating >= 4.5
+GET http://localhost:4004/catalog/Books?$filter=rating ge 4.5
+
+### Not Mystery
+GET http://localhost:4004/catalog/Books?$filter=genre ne 'Mystery'
+
+### Published after 1990
+GET http://localhost:4004/catalog/Books?$filter=publishDate gt 1990-01-01
+
+
+############################
+### STRING FUNCTIONS
+############################
+
+### contains "the"
+GET http://localhost:4004/catalog/Books?$filter=contains(title,'the')
+
+### contains "The"
+GET http://localhost:4004/catalog/Books?$filter=contains(title,'The')
+
+### case-insensitive
+GET http://localhost:4004/catalog/Books?$filter=contains(tolower(title),'the')
+
+### authors starting with J
+GET http://localhost:4004/catalog/Authors?$filter=startswith(name,'J')
+
+### isbn startswith 978
+GET http://localhost:4004/catalog/Books?$filter=startswith(isbn,'978')
+
+
+############################
+### COMBINED FILTERS
+############################
+
+### Fantasy under 15
+GET http://localhost:4004/catalog/Books?$filter=genre eq 'Fantasy' and price lt 15
+
+### Fantasy OR Mystery
+GET http://localhost:4004/catalog/Books?$filter=genre eq 'Fantasy' or genre eq 'Mystery'
+
+### High rating AND cheap
+GET http://localhost:4004/catalog/Books?$filter=rating ge 4.5 and price lt 13
+
+### Harry OR rating > 4.7
+GET http://localhost:4004/catalog/Books?$filter=contains(title,'Harry') or rating gt 4.7
+
+### Stock > 0 and Genre filter
+GET http://localhost:4004/catalog/Books?$filter=stock gt 0 and (genre eq 'Fantasy' or genre eq 'Fiction')
+
+
+############################
+### SORTING & PAGINATION
+############################
+
+### sort title
+GET http://localhost:4004/catalog/Books?$orderby=title
+
+### expensive first
+GET http://localhost:4004/catalog/Books?$orderby=price desc
+
+### top 3 rated
+GET http://localhost:4004/catalog/Books?$orderby=rating desc&$top=3
+
+### cheapest 2
+GET http://localhost:4004/catalog/Books?$orderby=price&$top=2
+
+### page 1
+GET http://localhost:4004/catalog/Books?$orderby=title&$top=2&$skip=0
+
+### page 2
+GET http://localhost:4004/catalog/Books?$orderby=title&$top=2&$skip=2
+
+### count
+GET http://localhost:4004/catalog/Books?$orderby=title&$top=2&$count=true
+
+
+############################
+### SELECT
+############################
+
+### only title
+GET http://localhost:4004/catalog/Books?$select=title
+
+### title + price
+GET http://localhost:4004/catalog/Books?$select=title,price
+
+### select + order
+GET http://localhost:4004/catalog/Books?$select=title,price,rating&$orderby=price
+
+### authors name only
+GET http://localhost:4004/catalog/Authors?$select=name
+
+### select + filter
+GET http://localhost:4004/catalog/Books?$select=title,price&$filter=price lt 12
+
+
+############################
+### EXPAND
+############################
+
+### book with author
+GET http://localhost:4004/catalog/Books?$expand=author
+
+### author with books
+GET http://localhost:4004/catalog/Authors?$expand=books
+
+### expand with select
+GET http://localhost:4004/catalog/Books?$expand=author($select=name,country)
+
+### expand filtered books
+GET http://localhost:4004/catalog/Authors?$expand=books($filter=genre eq 'Fantasy')
+
+
+############################
+### CHALLENGE
+############################
+
+### cheapest fantasy top 3
+GET http://localhost:4004/catalog/Books?$filter=genre eq 'Fantasy'&$orderby=price&$top=3&$select=title,price
+
+### sorted + paging + count
+GET http://localhost:4004/catalog/Books?$orderby=genre,price desc&$top=2&$skip=0&$count=true
+
+### complex
+GET http://localhost:4004/catalog/Books?$filter=contains(tolower(title),'the') and rating ge 4.0&$orderby=rating desc&$select=title,rating
+
+### Adding a new book
+POST http://localhost:4004/admin/Books
+Content-Type: application/json
+
+{
+  "title": "The Great Gatsby",
+  "genre": "Fiction",
+  "price": 10.99,
+  "stock": 50,
+  "author_ID": "a1000001-0000-0000-0000-000000000003"
+}
+
+### Read nested/related data directly
+GET http://localhost:4004/catalog/Books(123e4567-e89b-12d3-a456-426614174000)/author
+
+### Update book price
+POST http://localhost:4004/admin/Books
+Content-Type: application/json
+
+{
+  "ID": "b100",
+  "title": "",
+  "price": -10
+}

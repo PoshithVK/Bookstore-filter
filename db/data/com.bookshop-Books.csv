@@ -1,0 +1,11 @@
+ID;title;genre;price;rating;stock;isbn;publishDate;author_ID
+b1;Harry Potter and the Philosopher's Stone;Fantasy;12.99;4.8;10;9780747532699;1997-06-26;a1
+b2;Harry Potter and the Chamber of Secrets;Fantasy;11.99;4.7;8;9780747538493;1998-07-02;a1
+b3;1984;Fiction;9.99;4.6;5;9780451524935;1949-06-08;a2
+b4;Animal Farm;Fiction;7.99;4.5;7;9780451526342;1945-08-17;a2
+b5;The Hobbit;Fantasy;10.99;4.7;6;9780618968633;1937-09-21;a3
+b6;The Lord of the Rings;Fantasy;15.99;4.9;4;9780618640157;1954-07-29;a3
+b7;The Da Vinci Code;Mystery;13.99;4.3;9;9780307474278;2003-03-18;a4
+b8;Angels and Demons;Mystery;12.49;4.2;3;9780743493468;2000-05-01;a4
+b9;Murder on the Orient Express;Mystery;8.99;4.6;5;9780062073495;1934-01-01;a5
+b10;The ABC Murders;Mystery;6.99;4.4;2;9780062073785;1936-01-01;a5
