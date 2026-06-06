@@ -1,84 +1,116 @@
 // srv/admin-service.js
 const cds = require('@sap/cds');
 
-module.exports = class AdminService extends cds.ApplicationService {
-  async init() {
+module.exports = function () {
 
-    // ✅ BEFORE CREATE
-    this.before('CREATE', 'Books', async (req) => {
+  // ═══════════════════════════════════════════════
+  //  BOOKS — Validation & Logic
+  // ═══════════════════════════════════════════════
 
-      const { title, price, stock, isbn, genre, author_ID } = req.data;
+  // --- Before CREATE: Validate input ---
+  this.before('CREATE', 'Books', async (req) => {
+    const { title, price, stock, isbn, author_ID } = req.data;
 
-      console.log('Creating book:', req.data);
+    // Required fields
+    if (!title || title.trim() === '') {
+      req.error(400, 'Title is required', 'title');
+    }
+    if (price === undefined || price === null) {
+      req.error(400, 'Price is required', 'price');
+    }
 
-      // --- Required field checks ---
-      if (!title || title.trim().length === 0) {
-        req.error(400, 'Title is required and cannot be empty', 'title');
+    // Range validation
+    if (price !== undefined && price <= 0) {
+      req.error(400, 'Price must be greater than zero', 'price');
+    }
+    if (stock !== undefined && stock < 0) {
+      req.error(400, 'Stock cannot be negative', 'stock');
+    }
+
+    // Format validation
+    if (isbn && !/^\d{13}$/.test(isbn)) {
+      req.error(400, 'ISBN must be exactly 13 digits', 'isbn');
+    }
+
+    // Referential integrity
+    if (author_ID) {
+      const { Authors } = cds.entities;
+      const author = await SELECT.one.from(Authors).where({ ID: author_ID });
+      if (!author) {
+        req.error(404, 'Author not found', 'author_ID');
       }
+    }
 
-      if (price === undefined || price === null) {
-        req.error(400, 'Price is required', 'price');
+    // Clean input
+    if (title) req.data.title = title.trim();
+  });
+
+  // --- Before UPDATE: Same validations for changed fields ---
+  this.before('UPDATE', 'Books', (req) => {
+    const { price, stock, isbn } = req.data;
+
+    if (price !== undefined && price <= 0) {
+      req.error(400, 'Price must be greater than zero', 'price');
+    }
+    if (stock !== undefined && stock < 0) {
+      req.error(400, 'Stock cannot be negative', 'stock');
+    }
+    if (isbn !== undefined && !/^\d{13}$/.test(isbn)) {
+      req.error(400, 'ISBN must be exactly 13 digits', 'isbn');
+    }
+  });
+
+  // --- After READ: Add computed fields ---
+  this.after('READ', 'Books', (results) => {
+    const books = Array.isArray(results) ? results : [results];
+
+    for (const book of books) {
+      if (book.price) {
+        book.priceWithTax = +(book.price * 1.18).toFixed(2);
       }
-
-      // --- Value checks ---
-      if (price !== undefined && price <= 0) {
-        req.error(400, 'Price must be greater than zero', 'price');
+      if (book.stock !== undefined) {
+        book.availability = book.stock > 10 ? 'In Stock'
+                          : book.stock > 0  ? 'Low Stock'
+                          : 'Out of Stock';
       }
+    }
+  });
 
-      if (price !== undefined && price > 9999.99) {
-        req.error(400, 'Price cannot exceed 9999.99', 'price');
-      }
+  // --- Before DELETE: Check dependencies ---
+  this.before('DELETE', 'Books', async (req) => {
+    const ID = req.params[0]?.ID || req.params[0];
+    // In a real app, check if this book is referenced in any orders
+    console.log(`[INFO] Deleting book ${ID}`);
+  });
 
-      if (stock !== undefined && stock < 0) {
-        req.error(400, 'Stock cannot be negative', 'stock');
-      }
+  // ═══════════════════════════════════════════════
+  //  AUTHORS — Validation & Logic
+  // ═══════════════════════════════════════════════
 
-      // --- Format check ---
-      if (isbn && isbn.length !== 13) {
-        req.error(400, 'ISBN must be exactly 13 characters', 'isbn');
-      }
+  this.before('CREATE', 'Authors', (req) => {
+    const { name, email } = req.data;
 
-      // --- Business rules ---
-      const validGenres = [
-        'Fantasy', 'Fiction', 'Mystery', 'Thriller',
-        'Science Fiction', 'Romance', 'Non-Fiction',
-        'Biography', 'Dystopian', 'Literary Fiction'
-      ];
+    if (!name || name.trim() === '') {
+      req.error(400, 'Author name is required', 'name');
+    }
 
-      if (genre && !validGenres.includes(genre)) {
-        req.error(400, `Invalid genre. Must be one of: ${validGenres.join(', ')}`, 'genre');
-      }
+    if (email && !email.includes('@')) {
+      req.error(400, 'Please provide a valid email address', 'email');
+    }
 
-      // --- Foreign key check ---
-      if (author_ID) {
-        const author = await SELECT.one.from('com.bookshop.Authors')
-          .where({ ID: author_ID });
+    if (name) req.data.name = name.trim();
+  });
 
-        if (!author) {
-          req.error(400, 'Author not found. Provide valid author_ID', 'author_ID');
-        }
-      }
-    });
+  this.before('DELETE', 'Authors', async (req) => {
+    const ID = req.params[0]?.ID || req.params[0];
+    const { Books } = cds.entities;
+    const books = await SELECT.from(Books).where({ author_ID: ID });
 
+    if (books.length > 0) {
+      req.reject(409,
+        `Cannot delete author: ${books.length} book(s) reference this author. Delete or reassign books first.`
+      );
+    }
+  });
 
-    // ✅ BEFORE UPDATE
-    this.before('UPDATE', 'Books', (req) => {
-
-      const { price, stock, isbn } = req.data;
-
-      if (price !== undefined && price <= 0) {
-        req.error(400, 'Price must be greater than zero', 'price');
-      }
-
-      if (stock !== undefined && stock < 0) {
-        req.error(400, 'Stock cannot be negative', 'stock');
-      }
-
-      if (isbn !== undefined && isbn.length !== 13) {
-        req.error(400, 'ISBN must be exactly 13 characters', 'isbn');
-      }
-    });
-
-    return super.init();
-  }
 };
