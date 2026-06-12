@@ -19,4 +19,6 @@ entity Books : cuid {
   publishDate : Date;
 
   author      : Association to Authors;
+
+  stockCriticality : Integer @Core.Computed;
 }

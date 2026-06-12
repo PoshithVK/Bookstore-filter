@@ -11,7 +11,6 @@ module.exports = function () {
   this.before('CREATE', 'Books', async (req) => {
     const { title, price, stock, isbn, author_ID } = req.data;
 
-    // Required fields
     if (!title || title.trim() === '') {
       req.error(400, 'Title is required', 'title');
     }
@@ -19,7 +18,6 @@ module.exports = function () {
       req.error(400, 'Price is required', 'price');
     }
 
-    // Range validation
     if (price !== undefined && price <= 0) {
       req.error(400, 'Price must be greater than zero', 'price');
     }
@@ -27,12 +25,10 @@ module.exports = function () {
       req.error(400, 'Stock cannot be negative', 'stock');
     }
 
-    // Format validation
     if (isbn && !/^\d{13}$/.test(isbn)) {
       req.error(400, 'ISBN must be exactly 13 digits', 'isbn');
     }
 
-    // Referential integrity
     if (author_ID) {
       const { Authors } = cds.entities;
       const author = await SELECT.one.from(Authors).where({ ID: author_ID });
@@ -41,11 +37,10 @@ module.exports = function () {
       }
     }
 
-    // Clean input
     if (title) req.data.title = title.trim();
   });
 
-  // --- Before UPDATE: Same validations for changed fields ---
+  // --- Before UPDATE ---
   this.before('UPDATE', 'Books', (req) => {
     const { price, stock, isbn } = req.data;
 
@@ -60,26 +55,41 @@ module.exports = function () {
     }
   });
 
-  // --- After READ: Add computed fields ---
+  // AFTER READ (computed fields + criticality)
   this.after('READ', 'Books', (results) => {
     const books = Array.isArray(results) ? results : [results];
 
     for (const book of books) {
+
+      // Price with tax
       if (book.price) {
         book.priceWithTax = +(book.price * 1.18).toFixed(2);
       }
+
+      // Availability + Criticality
       if (book.stock !== undefined) {
-        book.availability = book.stock > 10 ? 'In Stock'
-                          : book.stock > 0  ? 'Low Stock'
-                          : 'Out of Stock';
+
+        // Availability text
+        book.availability =
+          book.stock > 10 ? 'In Stock' :
+          book.stock > 0  ? 'Low Stock' :
+                            'Out of Stock';
+
+        // Criticality (for UI colors)
+        if (book.stock <= 2) {
+          book.stockCriticality = 1;
+        } else if (book.stock <= 6) {
+          book.stockCriticality = 2; 
+        } else {
+          book.stockCriticality = 3;
+        }
       }
     }
   });
 
-  // --- Before DELETE: Check dependencies ---
+  // --- Before DELETE ---
   this.before('DELETE', 'Books', async (req) => {
     const ID = req.params[0]?.ID || req.params[0];
-    // In a real app, check if this book is referenced in any orders
     console.log(`[INFO] Deleting book ${ID}`);
   });
 
@@ -104,10 +114,12 @@ module.exports = function () {
   this.before('DELETE', 'Authors', async (req) => {
     const ID = req.params[0]?.ID || req.params[0];
     const { Books } = cds.entities;
+
     const books = await SELECT.from(Books).where({ author_ID: ID });
 
     if (books.length > 0) {
-      req.reject(409,
+      req.reject(
+        409,
         `Cannot delete author: ${books.length} book(s) reference this author. Delete or reassign books first.`
       );
     }
